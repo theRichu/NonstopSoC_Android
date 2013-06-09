@@ -23,5 +23,13 @@ public class Util {
 
 	    return result;
 	  }
-
+	  public static byte[] int2byte( int i ) 
+	  {
+	             byte[] dest = new byte[4];
+	             dest[3] = (byte)(i & 0xff);
+	             dest[2] = (byte)((i>>8) & 0xff);
+	             dest[1] = (byte)((i>>16) & 0xff);
+	             dest[0] = (byte)((i>>24) & 0xff);
+	             return dest;
+	     }
 }

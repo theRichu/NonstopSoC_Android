@@ -15,7 +15,7 @@
 -->
 
 <resources>
-    <string name="app_name">Bluetooth Chat</string>
+    <string name="app_name">NonstopSoC</string>
 
     <!--  BluetoothChat -->
     <string name="send">Send</string>
@@ -129,4 +129,8 @@
     <string name="access_token_label">Current access token:</string>
     <string name="access_token_expires_label">Token expires at:</string>
     <string name="photo">Photo</string>
+    <string name="no_alarm">NOALARM</string>
+    <string name="around_alarm">Around</string>
+    <string name="ONALARM">on_alarm</string>
+    <string name="on_time">ONTIME</string>
 </resources>

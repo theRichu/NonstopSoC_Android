@@ -136,13 +136,13 @@
         android:layout_height="wrap_content" >
 
         <ToggleButton
-            android:id="@+id/toggle_Speed"
+            android:id="@+id/toggle_Velocity"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ToggleButton" />
 
         <SeekBar
-            android:id="@+id/seekBar_Speed"
+            android:id="@+id/seekBar_Velocity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -154,19 +154,50 @@
         android:layout_height="wrap_content" >
 
         <ToggleButton
-            android:id="@+id/toggle_Cadence"
+            android:id="@+id/toggle_Distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ToggleButton" />
 
         <SeekBar
-            android:id="@+id/seekBar_Cadence"
+            android:id="@+id/seekBar_Distance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="255" />
 
     </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <Button
+                android:id="@+id/button_no_alarm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/no_alarm" />
+
+            <Button
+                android:id="@+id/button_around_alarm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/around_alarm" />
+
+            <Button
+                android:id="@+id/button_on_alarm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ONALARM" />
+
+            <Button
+                android:id="@+id/button_ontime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/on_time" />
+
+        </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

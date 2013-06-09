@@ -16,7 +16,6 @@
 
 package com.nonstop.android.SoC.BluetoothChat;
 
-
 import java.io.IOException;
 
 import org.json.JSONException;
@@ -64,9 +63,11 @@ import com.facebook.android.Facebook;
 import com.facebook.android.FacebookError;
 import com.nonstop.android.SoC.R;
 import com.nonstop.android.SoC.Util;
-import com.nonstop.android.SoC.Data.GlasONaviData.Direction;
-import com.nonstop.android.SoC.Data.GlasONaviData.Speed;
-import com.nonstop.android.SoC.Data.GlasONaviData.Status;
+import com.nonstop.android.SoC.Data.GlasOData.Alarm;
+import com.nonstop.android.SoC.Data.GlasOData.Direction;
+import com.nonstop.android.SoC.Data.GlasOData.Exceed;
+import com.nonstop.android.SoC.Data.GlasOData.OnTime;
+import com.nonstop.android.SoC.Data.GlasOData.Status;
 import com.nonstop.android.SoC.Facebook.BaseRequestListener;
 
 import com.nonstop.android.SoC.Facebook.Hackbook;
@@ -76,770 +77,841 @@ import com.nonstop.android.SoC.Facebook.SessionStore;
 import com.nonstop.android.SoC.Facebook.UploadPhotoResultDialog;
 import com.nonstop.android.SoC.Facebook.Utility;
 
-
 import com.nonstop.android.SoC.Facebook.Hackbook.PhotoUploadListener;
 import com.nonstop.android.SoC.Facebook.SessionEvents.AuthListener;
 import com.nonstop.android.SoC.Facebook.SessionEvents.LogoutListener;
+
 /**
  * This is the main Activity that displays the current chat session.
  */
 @SuppressWarnings("deprecation")
 public class BluetoothChat extends Activity {
-    // Debugging
-    private static final String TAG = "BluetoothChat";
-    private static final boolean D = true;
+	// Debugging
+	private static final String TAG = "BluetoothChat";
+	private static final boolean D = true;
 
-    public static final String APP_ID = "157111564357680";
-    private LoginButton mLoginButton;
-    private TextView mText;
-    private ImageView mUserPic;
-    private Handler mHandler_facebook;
-    ProgressDialog dialog;
+	public static final String APP_ID = "157111564357680";
+	private LoginButton mLoginButton;
+	private TextView mText;
+	private ImageView mUserPic;
+	private Handler mHandler_facebook;
+	ProgressDialog dialog;
 
-    final static int AUTHORIZE_ACTIVITY_RESULT_CODE = 9;
-    final static int PICK_EXISTING_PHOTO_RESULT_CODE = 8;
-  
-    String[] permissions = { "offline_access", "publish_stream", "user_photos", "publish_checkins",
-    "photo_upload" };
+	final static int AUTHORIZE_ACTIVITY_RESULT_CODE = 9;
+	final static int PICK_EXISTING_PHOTO_RESULT_CODE = 8;
 
-  
+	String[] permissions = { "offline_access", "publish_stream", "user_photos",
+			"publish_checkins", "photo_upload" };
 
-    // Message types sent from the BluetoothChatService Handler
-    public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
-    public static final int MESSAGE_TOAST = 5;
+	// Message types sent from the BluetoothChatService Handler
+	public static final int MESSAGE_STATE_CHANGE = 1;
+	public static final int MESSAGE_READ = 2;
+	public static final int MESSAGE_WRITE = 3;
+	public static final int MESSAGE_DEVICE_NAME = 4;
+	public static final int MESSAGE_TOAST = 5;
 
-    // Key names received from the BluetoothChatService Handler
-    public static final String DEVICE_NAME = "device_name";
-    public static final String TOAST = "toast";
+	// Key names received from the BluetoothChatService Handler
+	public static final String DEVICE_NAME = "device_name";
+	public static final String TOAST = "toast";
 
-    // Intent request codes
-    private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
-    private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
-    private static final int REQUEST_ENABLE_BT = 3;
+	// Intent request codes
+	private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
+	private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
+	private static final int REQUEST_ENABLE_BT = 3;
 
-    // Layout Views
-    private TextView mTitle;
-    private ListView mConversationView;
-    private EditText mOutEditText;
-    private Button mSendButton;
-    
-    private Button mTurnLeftButton;
-    private Button mTurnRightButton;
-    private Button mNormalButton;
-    private Button mPhotoButton;
+	// Layout Views
+	private TextView mTitle;
+	private ListView mConversationView;
+	private EditText mOutEditText;
+	private Button mSendButton;
 
-    private RadioGroup mRadioGroup;
-    private CheckBox mStatusCheckBox;
-    
-    private ToggleButton mNaviToggle;
-    
-    private ToggleButton mHeartbeatToggle;
-    private SeekBar mHeartbeat;
+	private Button mTurnLeftButton;
+	private Button mTurnRightButton;
+	private Button mNormalButton;
+	private Button mPhotoButton;
 
-    private ToggleButton mSpeedToggle;
-    private SeekBar mSpeed;
-    
-    private ToggleButton mCadenceToggle;
-    private SeekBar mCadence;
-    
-    // Name of the connected device
-    private String mConnectedDeviceName = null;
-    // Array adapter for the conversation thread
-    private ArrayAdapter<String> mConversationArrayAdapter;
-    // String buffer for outgoing messages
-    private StringBuffer mOutStringBuffer;
-    // Local Bluetooth adapter
-    private BluetoothAdapter mBluetoothAdapter = null;
-    // Member object for the chat services
-    private BluetoothChatService mChatService = null;
+	private Button mNoAlarmButton;
+	private Button mAroundAlarmButton;
+	private Button mOnAlarmButton;
+	private Button mOnTimeButton;
 
-    
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if(D) Log.e(TAG, "+++ ON CREATE +++");
+	private RadioGroup mRadioGroup;
+	private CheckBox mStatusCheckBox;
 
-        // Set up the window layout
-        requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
-        setContentView(R.layout.bluetooth_chat);
-        getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
+	private ToggleButton mNaviToggle;
 
-        // Set up the custom title
-        mTitle = (TextView) findViewById(R.id.title_left_text);
-        mTitle.setText(R.string.app_name);
-        mTitle = (TextView) findViewById(R.id.title_right_text);
+	private ToggleButton mHeartbeatToggle;
+	private SeekBar mHeartbeat;
 
-        // Get local Bluetooth adapter
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+	private ToggleButton mSpeedToggle;
+	private SeekBar mSpeed;
 
+	private ToggleButton mDistanceToggle;
+	private SeekBar mDiatance;
 
-        // If the adapter is null, then Bluetooth is not supported
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }    
-        
-        
-        if (APP_ID == null) {
-        	com.facebook.android.Util.showAlert(this, "Warning", "Facebook Applicaton ID must be "
-                    + "specified before running this example: see FbAPIs.java");
-            return;
-        }
+	// Name of the connected device
+	private String mConnectedDeviceName = null;
+	// Array adapter for the conversation thread
+	private ArrayAdapter<String> mConversationArrayAdapter;
+	// String buffer for outgoing messages
+	private StringBuffer mOutStringBuffer;
+	// Local Bluetooth adapter
+	private BluetoothAdapter mBluetoothAdapter = null;
+	// Member object for the chat services
+	private BluetoothChatService mChatService = null;
 
-        //setContentView(R.layout.main);
-        mHandler_facebook = new Handler();
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (D)
+			Log.e(TAG, "+++ ON CREATE +++");
 
-        mText = (TextView) this.findViewById(R.id.txt);
-        mUserPic = (ImageView) this.findViewById(R.id.user_pic);
+		// Set up the window layout
+		requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+		setContentView(R.layout.bluetooth_chat);
+		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE,
+				R.layout.custom_title);
 
-        // Create the Facebook Object using the app id.
-        Utility.mFacebook = new Facebook(APP_ID);
-        // Instantiate the asynrunner object for asynchronous api calls.
-        Utility.mAsyncRunner = new AsyncFacebookRunner(Utility.mFacebook);
+		// Set up the custom title
+		mTitle = (TextView) findViewById(R.id.title_left_text);
+		mTitle.setText(R.string.app_name);
+		mTitle = (TextView) findViewById(R.id.title_right_text);
 
-        mLoginButton = (LoginButton) findViewById(R.id.login);
+		// Get local Bluetooth adapter
+		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        // restore session if one exists
-        SessionStore.restore(Utility.mFacebook, this);
-        SessionEvents.addAuthListener(new FbAPIsAuthListener());
-        SessionEvents.addLogoutListener(new FbAPIsLogoutListener());
+		// If the adapter is null, then Bluetooth is not supported
+		if (mBluetoothAdapter == null) {
+			Toast.makeText(this, "Bluetooth is not available",
+					Toast.LENGTH_LONG).show();
+			finish();
+			return;
+		}
 
-        /*
-         * Source Tag: login_tag
-         */
-        mLoginButton.init(this, AUTHORIZE_ACTIVITY_RESULT_CODE, Utility.mFacebook, permissions);
+		if (APP_ID == null) {
+			com.facebook.android.Util
+					.showAlert(
+							this,
+							"Warning",
+							"Facebook Applicaton ID must be "
+									+ "specified before running this example: see FbAPIs.java");
+			return;
+		}
 
-        if (Utility.mFacebook.isSessionValid()) {
-            requestUserData();
-        }
+		// setContentView(R.layout.main);
+		mHandler_facebook = new Handler();
 
-       
+		mText = (TextView) this.findViewById(R.id.txt);
+		mUserPic = (ImageView) this.findViewById(R.id.user_pic);
 
-    }
+		// Create the Facebook Object using the app id.
+		Utility.mFacebook = new Facebook(APP_ID);
+		// Instantiate the asynrunner object for asynchronous api calls.
+		Utility.mAsyncRunner = new AsyncFacebookRunner(Utility.mFacebook);
 
-    
-    
-    
-    
-    @Override
-    public void onStart() {
-        super.onStart();
-        if(D) Log.e(TAG, "++ ON START ++");
+		mLoginButton = (LoginButton) findViewById(R.id.login);
 
-        // If BT is not on, request that it be enabled.
-        // setupChat() will then be called during onActivityResult
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-        // Otherwise, setup the chat session
-        } else {
-            if (mChatService == null) setupChat();
-        }
-    }
+		// restore session if one exists
+		SessionStore.restore(Utility.mFacebook, this);
+		SessionEvents.addAuthListener(new FbAPIsAuthListener());
+		SessionEvents.addLogoutListener(new FbAPIsLogoutListener());
 
-    @Override
-    public synchronized void onResume() {
-        super.onResume();
-        if(D) Log.e(TAG, "+ ON RESUME +");
+		/*
+		 * Source Tag: login_tag
+		 */
+		mLoginButton.init(this, AUTHORIZE_ACTIVITY_RESULT_CODE,
+				Utility.mFacebook, permissions);
 
-        // Performing this check in onResume() covers the case in which BT was
-        // not enabled during onStart(), so we were paused to enable it...
-        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-        if (mChatService != null) {
-            // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
-              // Start the Bluetooth chat services
-              mChatService.start();
-            }
-        }
-        if(Utility.mFacebook != null) {
-            if (!Utility.mFacebook.isSessionValid()) {
-                mText.setText("You are logged out! ");
-                mUserPic.setImageBitmap(null);
-            } else {
-                Utility.mFacebook.extendAccessTokenIfNeeded(this, null);
-            }
-        }
-    }
+		if (Utility.mFacebook.isSessionValid()) {
+			requestUserData();
+		}
 
-    private void setupChat() {
-        Log.d(TAG, "setupChat()");
+	}
 
-        // Initialize the array adapter for the conversation thread
-        mConversationArrayAdapter = new ArrayAdapter<String>(this, R.layout.message);
-        mConversationView = (ListView) findViewById(R.id.in);
-        mConversationView.setAdapter(mConversationArrayAdapter);
+	@Override
+	public void onStart() {
+		super.onStart();
+		if (D)
+			Log.e(TAG, "++ ON START ++");
 
-        // Initialize the compose field with a listener for the return key
-        mOutEditText = (EditText) findViewById(R.id.edit_text_out);
-        mOutEditText.setOnEditorActionListener(mWriteListener);
+		// If BT is not on, request that it be enabled.
+		// setupChat() will then be called during onActivityResult
+		if (!mBluetoothAdapter.isEnabled()) {
+			Intent enableIntent = new Intent(
+					BluetoothAdapter.ACTION_REQUEST_ENABLE);
+			startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+			// Otherwise, setup the chat session
+		} else {
+			if (mChatService == null)
+				setupChat();
+		}
+	}
 
-        // Initialize the send button with a listener that for click events
-        mSendButton = (Button) findViewById(R.id.button_send);
-        mSendButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.edit_text_out);
-                String message = view.getText().toString();
-                sendMessage(message);
-            }
-        });
-        mTurnLeftButton = (Button) findViewById(R.id.button_turnleft);
-        mTurnLeftButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
+	@Override
+	public synchronized void onResume() {
+		super.onResume();
+		if (D)
+			Log.e(TAG, "+ ON RESUME +");
 
-            	mChatService.mGlasONaviData.setDirection(Direction.LEFT);
-            		sendMessage(mChatService.mGlasONaviData.makeNaviPacket());
-            }
-        });
-        mTurnRightButton = (Button) findViewById(R.id.button_turnright);
-        mTurnRightButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-            	mChatService.mGlasONaviData.setDirection(Direction.RIGHT);
-            		sendMessage(mChatService.mGlasONaviData.makeNaviPacket());
-            }
-        });
-        mNormalButton = (Button) findViewById(R.id.button_normal);
-        mNormalButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-            	mChatService.mGlasONaviData.setDirection(Direction.NORMAL);
-            		sendMessage(mChatService.mGlasONaviData.makeNaviPacket());
-            }
-        });
-        mPhotoButton = (Button) findViewById(R.id.button_photo);
-        mPhotoButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-
-            	
-                if (!Utility.mFacebook.isSessionValid()) {
-                    //Util.showAlert(this, "Warning", "You must first log in.");
-                } else {
-                                                    /*
-                                             * Source tag: upload_photo_tag
-                                             */
-                    dialog = ProgressDialog.show(BluetoothChat.this, "",
-                            getString(R.string.please_wait), true, true);
-                                            Bundle params = new Bundle();
-                                            params.putString("url",
-                                                    "http://www.facebook.com/images/devsite/iphone_connect_btn.jpg");
-                                            params.putString("caption",
-                                                    "FbAPIs Sample App photo upload");
-                                            Utility.mAsyncRunner.request("me/photos", params,
-                                                    "POST", new PhotoUploadListener(), null);
-                }
-            }
-        });
-
-        mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup1);
-        mRadioGroup.setOnCheckedChangeListener(
-        		new RadioGroup.OnCheckedChangeListener(){
-        	public void onCheckedChanged(RadioGroup arg0, int arg1){
-        	if(arg1==R.id.radio_exceed){
-
-        		mChatService.mGlasONaviData.setSpeed(Speed.EXCEED);
-        	}else if(arg1==R.id.radio_exceedhigh){
-
-        		mChatService.mGlasONaviData.setSpeed(Speed.EXCEEDHIGH);
-        	}else if(arg1==R.id.radio_normalspeed){
-        		mChatService.mGlasONaviData.setSpeed(Speed.NORMALSPEED);
-        	} 
-        	sendMessage(mChatService.mGlasONaviData.makeNaviPacket());
-        }});
-
-        mStatusCheckBox = (CheckBox) findViewById(R.id.checkBox_status);
-        mStatusCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-				mChatService.mGlasONaviData.setStatus(Status.WRONG);
-				mChatService.mGlasONaviData.setSpeed(Speed.NORMALSPEED);
-				
+		// Performing this check in onResume() covers the case in which BT was
+		// not enabled during onStart(), so we were paused to enable it...
+		// onResume() will be called when ACTION_REQUEST_ENABLE activity
+		// returns.
+		if (mChatService != null) {
+			// Only if the state is STATE_NONE, do we know that we haven't
+			// started already
+			if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
+				// Start the Bluetooth chat services
+				mChatService.start();
 			}
-        });
-        
-        mNaviToggle = (ToggleButton) findViewById(R.id.toggle_navi);
-        mNaviToggle.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
-
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-			     if(isChecked)
-			        {
-			    	 if(D) Log.e(TAG, "++ NAVI ON ++");
-			    	 mChatService.navi_stat_=1;
-			            	
-			        }
-			        else
-			        {
-			        	if(D) Log.e(TAG, "++ NAVI OFF ++");
-			        	mChatService.navi_stat_=0;
-
-			        }
+		}
+		if (Utility.mFacebook != null) {
+			if (!Utility.mFacebook.isSessionValid()) {
+				mText.setText("You are logged out! ");
+				mUserPic.setImageBitmap(null);
+			} else {
+				Utility.mFacebook.extendAccessTokenIfNeeded(this, null);
 			}
-        });
-        mHeartbeatToggle = (ToggleButton) findViewById(R.id.toggle_Heartbeat);
-        mHeartbeatToggle.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+		}
+	}
 
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-			     if(isChecked)
-			        {
-			    	 if(D) Log.e(TAG, "++ HEARTBEAT ON ++");
-			    	 mChatService.heartbeat_stat_=1;
-			        }
-			        else
-			        {
-			        	if(D) Log.e(TAG, "++ HEARTBEAT OFF ++");
-			        	mChatService.heartbeat_stat_=0;
-			        }
-		    	 if(mChatService.heartbeat_stat_==0 && mChatService.cadence_stat_==0 && mChatService.speed_stat_==0){
-		    		 mChatService.sens_stat_=0;
-		    	 }else{
-		    		 mChatService.sens_stat_=1;
-		    	 }
+	private void setupChat() {
+		Log.d(TAG, "setupChat()");
+
+		// Initialize the array adapter for the conversation thread
+		mConversationArrayAdapter = new ArrayAdapter<String>(this,
+				R.layout.message);
+		mConversationView = (ListView) findViewById(R.id.in);
+		mConversationView.setAdapter(mConversationArrayAdapter);
+
+		// Initialize the compose field with a listener for the return key
+		mOutEditText = (EditText) findViewById(R.id.edit_text_out);
+		mOutEditText.setOnEditorActionListener(mWriteListener);
+
+		// Initialize the send button with a listener that for click events
+		mSendButton = (Button) findViewById(R.id.button_send);
+		mSendButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				// Send a message using content of the edit text widget
+				TextView view = (TextView) findViewById(R.id.edit_text_out);
+				String message = view.getText().toString();
+				sendMessage(message);
 			}
-        });
-        
-        mHeartbeat = (SeekBar)findViewById(R.id.seekBar_Heartbeat);  
-        mHeartbeat.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            	mChatService.mGlasOSensData.setHeartbeat_(progress);
-            }
+		});
+		mTurnLeftButton = (Button) findViewById(R.id.button_turnleft);
+		mTurnLeftButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+
+				mChatService.mGlasOData.setDirection(Direction.LEFT);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+		mTurnRightButton = (Button) findViewById(R.id.button_turnright);
+		mTurnRightButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setDirection(Direction.RIGHT);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+		mNormalButton = (Button) findViewById(R.id.button_normal);
+		mNormalButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setDirection(Direction.NORMAL);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+
+		mNoAlarmButton = (Button) findViewById(R.id.button_no_alarm);
+		mNoAlarmButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setAlarm_(Alarm.NOUSE);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+		mAroundAlarmButton = (Button) findViewById(R.id.button_around_alarm);
+		mAroundAlarmButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setAlarm_(Alarm.AROUND);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+		mOnAlarmButton = (Button) findViewById(R.id.button_on_alarm);
+		mOnAlarmButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setAlarm_(Alarm.ONTIME);
+				sendMessage(mChatService.mGlasOData.makePacket());
+			}
+		});
+		mOnTimeButton = (Button) findViewById(R.id.button_ontime);
+		mOnTimeButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				mChatService.mGlasOData.setOnTime(OnTime.ON);
+				sendMessage(mChatService.mGlasOData.makePacket());
+				mChatService.mGlasOData.setOnTime(OnTime.OFF);
+			}
+		});
+		mPhotoButton = (Button) findViewById(R.id.button_photo);
+		mPhotoButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+
+				if (!Utility.mFacebook.isSessionValid()) {
+					// Util.showAlert(this, "Warning",
+					// "You must first log in.");
+				} else {
+					/*
+					 * Source tag: upload_photo_tag
+					 */
+					dialog = ProgressDialog.show(BluetoothChat.this, "",
+							getString(R.string.please_wait), true, true);
+					Bundle params = new Bundle();
+					params.putString("url",
+							"http://www.facebook.com/images/devsite/iphone_connect_btn.jpg");
+					params.putString("caption",
+							"FbAPIs Sample App photo upload");
+					Utility.mAsyncRunner.request("me/photos", params, "POST",
+							new PhotoUploadListener(), null);
+				}
+			}
+		});
+
+		mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup1);
+		mRadioGroup
+				.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+					public void onCheckedChanged(RadioGroup arg0, int arg1) {
+						if (arg1 == R.id.radio_exceed) {
+
+							mChatService.mGlasOData.setExceed(Exceed.EXCEED);
+						} else if (arg1 == R.id.radio_exceedhigh) {
+
+							mChatService.mGlasOData
+									.setExceed(Exceed.EXCEEDHIGH);
+						} else if (arg1 == R.id.radio_normalspeed) {
+							mChatService.mGlasOData
+									.setExceed(Exceed.NORMALSPEED);
+						}
+						sendMessage(mChatService.mGlasOData.makePacket());
+					}
+				});
+
+		mStatusCheckBox = (CheckBox) findViewById(R.id.checkBox_status);
+		mStatusCheckBox
+				.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						mChatService.mGlasOData.setStatus(Status.WRONG);
+						mChatService.mGlasOData.setExceed(Exceed.NORMALSPEED);
+
+					}
+				});
+
+		mNaviToggle = (ToggleButton) findViewById(R.id.toggle_navi);
+		mNaviToggle
+				.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						if (isChecked) {
+							if (D)
+								Log.e(TAG, "++ NAVI ON ++");
+							mChatService.navi_stat_ = 1;
+
+						} else {
+							if (D)
+								Log.e(TAG, "++ NAVI OFF ++");
+							mChatService.navi_stat_ = 0;
+
+						}
+					}
+				});
+		mHeartbeatToggle = (ToggleButton) findViewById(R.id.toggle_Heartbeat);
+		mHeartbeatToggle
+				.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						if (isChecked) {
+							if (D)
+								Log.e(TAG, "++ HEARTBEAT ON ++");
+							mChatService.heartbeat_stat_ = 1;
+						} else {
+							if (D)
+								Log.e(TAG, "++ HEARTBEAT OFF ++");
+							mChatService.heartbeat_stat_ = 0;
+						}
+						if (mChatService.heartbeat_stat_ == 0
+								&& mChatService.cadence_stat_ == 0
+								&& mChatService.speed_stat_ == 0) {
+							mChatService.sens_stat_ = 0;
+						} else {
+							mChatService.sens_stat_ = 1;
+						}
+					}
+				});
+
+		mHeartbeat = (SeekBar) findViewById(R.id.seekBar_Heartbeat);
+		mHeartbeat
+				.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+					public void onProgressChanged(SeekBar seekBar,
+							int progress, boolean fromUser) {
+						mChatService.mGlasOData.setHeartbeat_(progress);
+					}
+
+					@Override
+					public void onStartTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+
+					}
+
+					@Override
+					public void onStopTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+
+					}
+				});
+
+		mSpeedToggle = (ToggleButton) findViewById(R.id.toggle_Velocity);
+		mSpeedToggle
+				.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						if (isChecked) {
+							if (D)
+								Log.e(TAG, "++ SpeedSens ON ++");
+							mChatService.speed_stat_ = 1;
+						} else {
+							if (D)
+								Log.e(TAG, "++ SpeedSens OFF ++");
+							mChatService.speed_stat_ = 0;
+						}
+						if (mChatService.heartbeat_stat_ == 0
+								&& mChatService.cadence_stat_ == 0
+								&& mChatService.speed_stat_ == 0) {
+							mChatService.sens_stat_ = 0;
+						} else {
+							mChatService.sens_stat_ = 1;
+						}
+					}
+				});
+
+		mSpeed = (SeekBar) findViewById(R.id.seekBar_Velocity);
+		mSpeed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				mChatService.mGlasOData.setVelocity_(progress);
+			}
 
 			@Override
 			public void onStartTrackingTouch(SeekBar seekBar) {
 				// TODO Auto-generated method stub
-				
+
 			}
 
 			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {
 				// TODO Auto-generated method stub
-				
+
 			}
-        });
-        
-        mSpeedToggle = (ToggleButton) findViewById(R.id.toggle_Speed);
-        mSpeedToggle.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+		});
 
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-			     if(isChecked)
-			        {
-			    	 if(D) Log.e(TAG, "++ SpeedSens ON ++");
-			    	 mChatService.speed_stat_=1;
-			        }
-			        else
-			        {
-			        	if(D) Log.e(TAG, "++ SpeedSens OFF ++");
-			        	mChatService.speed_stat_=0;
-			        }
-		    	 if(mChatService.heartbeat_stat_==0 && mChatService.cadence_stat_==0 && mChatService.speed_stat_==0){
-		    		 mChatService.sens_stat_=0;
-		    	 }else{
-		    		 mChatService.sens_stat_=1;
-		    	 }
+		mDistanceToggle = (ToggleButton) findViewById(R.id.toggle_Distance);
+		mDistanceToggle
+				.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						if (isChecked) {
+							if (D)
+								Log.e(TAG, "++ Cadence ON ++");
+							mChatService.cadence_stat_ = 1;
+						} else {
+							if (D)
+								Log.e(TAG, "++ HEARTBEAT OFF ++");
+							mChatService.cadence_stat_ = 0;
+						}
+						if (mChatService.heartbeat_stat_ == 0
+								&& mChatService.cadence_stat_ == 0
+								&& mChatService.speed_stat_ == 0) {
+							mChatService.sens_stat_ = 0;
+						} else {
+							mChatService.sens_stat_ = 1;
+						}
+					}
+				});
+
+		mDiatance = (SeekBar) findViewById(R.id.seekBar_Distance);
+		mDiatance
+				.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+					public void onProgressChanged(SeekBar seekBar,
+							int progress, boolean fromUser) {
+						mChatService.mGlasOData.setDistance_(progress);
+					}
+
+					@Override
+					public void onStartTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+
+					}
+
+					@Override
+					public void onStopTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+
+					}
+				});
+		// Initialize the BluetoothChatService to perform bluetooth connections
+		mChatService = new BluetoothChatService(this, mHandler);
+
+		// Initialize the buffer for outgoing messages
+		mOutStringBuffer = new StringBuffer("");
+	}
+
+	@Override
+	public synchronized void onPause() {
+		super.onPause();
+		if (D)
+			Log.e(TAG, "- ON PAUSE -");
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		if (D)
+			Log.e(TAG, "-- ON STOP --");
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		// Stop the Bluetooth chat services
+		if (mChatService != null)
+			mChatService.stop();
+		if (D)
+			Log.e(TAG, "--- ON DESTROY ---");
+	}
+
+	private void ensureDiscoverable() {
+		if (D)
+			Log.d(TAG, "ensure discoverable");
+		if (mBluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+			Intent discoverableIntent = new Intent(
+					BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+			discoverableIntent.putExtra(
+					BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+			startActivity(discoverableIntent);
+		}
+	}
+
+	/**
+	 * Sends a message.
+	 * 
+	 * @param message
+	 *            A string of text to send.
+	 */
+	private void sendMessage(String message) {
+		// Check that we're actually connected before trying anything
+		if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+			Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT)
+					.show();
+			return;
+		}
+
+		// Check that there's actually something to send
+		if (message.length() > 0) {
+			// Get the message bytes and tell the BluetoothChatService to write
+			byte[] send = message.getBytes();
+			mChatService.write(send);
+
+			// Reset out string buffer to zero and clear the edit text field
+			mOutStringBuffer.setLength(0);
+			mOutEditText.setText(mOutStringBuffer);
+		}
+	}
+
+	// The action listener for the EditText widget, to listen for the return key
+	private TextView.OnEditorActionListener mWriteListener = new TextView.OnEditorActionListener() {
+		public boolean onEditorAction(TextView view, int actionId,
+				KeyEvent event) {
+			// If the action is a key-up event on the return key, send the
+			// message
+			if (actionId == EditorInfo.IME_NULL
+					&& event.getAction() == KeyEvent.ACTION_UP) {
+				String message = view.getText().toString();
+				sendMessage(message);
 			}
-        });
-        
-        mSpeed = (SeekBar)findViewById(R.id.seekBar_Speed);  
-        mSpeed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            	mChatService.mGlasOSensData.setSpeed_(progress);
-            }
+			if (D)
+				Log.i(TAG, "END onEditorAction");
+			return true;
+		}
+	};
 
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
-				
+	// The Handler that gets information back from the BluetoothChatService
+	private final Handler mHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case MESSAGE_STATE_CHANGE:
+				if (D)
+					Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+				switch (msg.arg1) {
+				case BluetoothChatService.STATE_CONNECTED:
+					mTitle.setText(R.string.title_connected_to);
+					mTitle.append(mConnectedDeviceName);
+					mConversationArrayAdapter.clear();
+					break;
+				case BluetoothChatService.STATE_CONNECTING:
+					mTitle.setText(R.string.title_connecting);
+					break;
+				case BluetoothChatService.STATE_LISTEN:
+				case BluetoothChatService.STATE_NONE:
+					mTitle.setText(R.string.title_not_connected);
+					break;
+				}
+				break;
+			case MESSAGE_WRITE:
+				byte[] writeBuf = (byte[]) msg.obj;
+				// construct a string from the buffer
+				String writeMessage = new String(writeBuf);
+				mConversationArrayAdapter.add("Me:  "
+						+ Util.stringToHex0x(writeMessage));
+				break;
+			case MESSAGE_READ:
+				byte[] readBuf = (byte[]) msg.obj;
+				// construct a string from the valid bytes in the buffer
+				String readMessage = new String(readBuf, 0, msg.arg1);
+				mConversationArrayAdapter.add(mConnectedDeviceName + ":  "
+						+ Util.stringToHex0x(readMessage));
+				break;
+			case MESSAGE_DEVICE_NAME:
+				// save the connected device's name
+				mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+				Toast.makeText(getApplicationContext(),
+						"Connected to " + mConnectedDeviceName,
+						Toast.LENGTH_SHORT).show();
+				break;
+			case MESSAGE_TOAST:
+				Toast.makeText(getApplicationContext(),
+						msg.getData().getString(TOAST), Toast.LENGTH_SHORT)
+						.show();
+				break;
 			}
+		}
+	};
 
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
-				
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (D)
+			Log.d(TAG, "onActivityResult " + resultCode);
+		switch (requestCode) {
+		case REQUEST_CONNECT_DEVICE_SECURE:
+			// When DeviceListActivity returns with a device to connect
+			if (resultCode == Activity.RESULT_OK) {
+				connectDevice(data, true);
 			}
-        });
-        
-        mCadenceToggle = (ToggleButton) findViewById(R.id.toggle_Cadence);
-        mCadenceToggle.setOnCheckedChangeListener(new ToggleButton.OnCheckedChangeListener() {
-
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-			     if(isChecked)
-			        {
-			    	 if(D) Log.e(TAG, "++ Cadence ON ++");
-			    	 mChatService.cadence_stat_=1;
-			        }
-			        else
-			        {
-			        	if(D) Log.e(TAG, "++ HEARTBEAT OFF ++");
-			        	mChatService.cadence_stat_=0;
-			        }
-		    	 if(mChatService.heartbeat_stat_==0 && mChatService.cadence_stat_==0 && mChatService.speed_stat_==0){
-		    		 mChatService.sens_stat_=0;
-		    	 }else{
-		    		 mChatService.sens_stat_=1;
-		    	 }
+			break;
+		case REQUEST_CONNECT_DEVICE_INSECURE:
+			// When DeviceListActivity returns with a device to connect
+			if (resultCode == Activity.RESULT_OK) {
+				connectDevice(data, false);
 			}
-        });
-        
-        mCadence = (SeekBar)findViewById(R.id.seekBar_Cadence);  
-        mCadence.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            	mChatService.mGlasOSensData.setCadence_(progress);
-            }
-
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
-				
+			break;
+		case REQUEST_ENABLE_BT:
+			// When the request to enable Bluetooth returns
+			if (resultCode == Activity.RESULT_OK) {
+				// Bluetooth is now enabled, so set up a chat session
+				setupChat();
+			} else {
+				// User did not enable Bluetooth or an error occured
+				Log.d(TAG, "BT not enabled");
+				Toast.makeText(this, R.string.bt_not_enabled_leaving,
+						Toast.LENGTH_SHORT).show();
+				finish();
 			}
-
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
-				
+			/*
+			 * if this is the activity result from authorization flow, do a call
+			 * back to authorizeCallback Source Tag: login_tag
+			 */
+		case AUTHORIZE_ACTIVITY_RESULT_CODE: {
+			Utility.mFacebook.authorizeCallback(requestCode, resultCode, data);
+			break;
+		}
+		/*
+		 * if this is the result for a photo picker from the gallery, upload the
+		 * image after scaling it. You can use the Utility.scaleImage() function
+		 * for scaling
+		 */
+		case PICK_EXISTING_PHOTO_RESULT_CODE: {
+			if (resultCode == Activity.RESULT_OK) {
+				Uri photoUri = data.getData();
+				if (photoUri != null) {
+					Bundle params = new Bundle();
+					try {
+						params.putByteArray("photo", Utility.scaleImage(
+								getApplicationContext(), photoUri));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					params.putString("caption", "NonstopSoC");
+					Utility.mAsyncRunner.request("me/photos", params, "POST",
+							new PhotoUploadListener(), null);
+				} else {
+					Toast.makeText(getApplicationContext(),
+							"Error selecting image from the gallery.",
+							Toast.LENGTH_SHORT).show();
+				}
+			} else {
+				Toast.makeText(getApplicationContext(),
+						"No image selected for upload.", Toast.LENGTH_SHORT)
+						.show();
 			}
-        });
-        // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(this, mHandler);
+			break;
 
-        // Initialize the buffer for outgoing messages
-        mOutStringBuffer = new StringBuffer("");
-    }
+		}
+		}
+	}
 
-    @Override
-    public synchronized void onPause() {
-        super.onPause();
-        if(D) Log.e(TAG, "- ON PAUSE -");
-    }
+	/*
+	 * callback for the photo upload
+	 */
+	public class PhotoUploadListener extends BaseRequestListener {
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        if(D) Log.e(TAG, "-- ON STOP --");
-    }
+		@Override
+		public void onComplete(final String response, final Object state) {
+			dialog.dismiss();
+			mHandler_facebook.post(new Runnable() {
+				@Override
+				public void run() {
+					new UploadPhotoResultDialog(BluetoothChat.this,
+							"Upload Photo executed", response).show();
+				}
+			});
+		}
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        // Stop the Bluetooth chat services
-        if (mChatService != null) mChatService.stop();
-        if(D) Log.e(TAG, "--- ON DESTROY ---");
-    }
+		public void onFacebookError(FacebookError error) {
+			dialog.dismiss();
+			Toast.makeText(getApplicationContext(),
+					"Facebook Error: " + error.getMessage(), Toast.LENGTH_LONG)
+					.show();
+		}
+	}
 
-    private void ensureDiscoverable() {
-        if(D) Log.d(TAG, "ensure discoverable");
-        if (mBluetoothAdapter.getScanMode() !=
-            BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-            startActivity(discoverableIntent);
-        }
-    }
+	/*
+	 * Callback for fetching current user's name, picture, uid.
+	 */
+	public class UserRequestListener extends BaseRequestListener {
 
-    /**
-     * Sends a message.
-     * @param message  A string of text to send.
-     */
-    private void sendMessage(String message) {
-        // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
+		@Override
+		public void onComplete(final String response, final Object state) {
+			JSONObject jsonObject;
+			try {
+				jsonObject = new JSONObject(response);
 
-        // Check that there's actually something to send
-        if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-            mChatService.write(send);
+				final String picURL = jsonObject.getJSONObject("picture")
+						.getJSONObject("data").getString("url");
+				final String name = jsonObject.getString("name");
+				Utility.userUID = jsonObject.getString("id");
 
-            // Reset out string buffer to zero and clear the edit text field
-            mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
-        }
-    }
+				mHandler_facebook.post(new Runnable() {
+					@Override
+					public void run() {
+						mText.setText("Welcome " + name + "!");
+						mUserPic.setImageBitmap(Utility.getBitmap(picURL));
+					}
+				});
 
-    // The action listener for the EditText widget, to listen for the return key
-    private TextView.OnEditorActionListener mWriteListener =
-        new TextView.OnEditorActionListener() {
-        public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
-            // If the action is a key-up event on the return key, send the message
-            if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
-                String message = view.getText().toString();
-                sendMessage(message);
-            }
-            if(D) Log.i(TAG, "END onEditorAction");
-            return true;
-        }
-    };
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
 
-    // The Handler that gets information back from the BluetoothChatService
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-            case MESSAGE_STATE_CHANGE:
-                if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                switch (msg.arg1) {
-                case BluetoothChatService.STATE_CONNECTED:
-                    mTitle.setText(R.string.title_connected_to);
-                    mTitle.append(mConnectedDeviceName);
-                    mConversationArrayAdapter.clear();
-                    break;
-                case BluetoothChatService.STATE_CONNECTING:
-                    mTitle.setText(R.string.title_connecting);
-                    break;
-                case BluetoothChatService.STATE_LISTEN:
-                case BluetoothChatService.STATE_NONE:
-                    mTitle.setText(R.string.title_not_connected);
-                    break;
-                }
-                break;
-            case MESSAGE_WRITE:
-                byte[] writeBuf = (byte[]) msg.obj;
-                // construct a string from the buffer
-                String writeMessage = new String(writeBuf);
-                mConversationArrayAdapter.add("Me:  " + Util.stringToHex0x(writeMessage));
-                break;
-            case MESSAGE_READ:
-                byte[] readBuf = (byte[]) msg.obj;
-                // construct a string from the valid bytes in the buffer
-                String readMessage = new String(readBuf, 0, msg.arg1);
-                mConversationArrayAdapter.add(mConnectedDeviceName+":  " + Util.stringToHex0x(readMessage));
-                break;
-            case MESSAGE_DEVICE_NAME:
-                // save the connected device's name
-                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                Toast.makeText(getApplicationContext(), "Connected to "
-                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                break;
-            case MESSAGE_TOAST:
-                Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
-                               Toast.LENGTH_SHORT).show();
-                break;
-            }
-        }
-    };
+	}
 
-    
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(D) Log.d(TAG, "onActivityResult " + resultCode);
-        switch (requestCode) {
-        case REQUEST_CONNECT_DEVICE_SECURE:
-            // When DeviceListActivity returns with a device to connect
-            if (resultCode == Activity.RESULT_OK) {
-                connectDevice(data, true);
-            }
-            break;
-        case REQUEST_CONNECT_DEVICE_INSECURE:
-            // When DeviceListActivity returns with a device to connect
-            if (resultCode == Activity.RESULT_OK) {
-                connectDevice(data, false);
-            }
-            break;
-        case REQUEST_ENABLE_BT:
-            // When the request to enable Bluetooth returns
-            if (resultCode == Activity.RESULT_OK) {
-                // Bluetooth is now enabled, so set up a chat session
-                setupChat();
-            } else {
-                // User did not enable Bluetooth or an error occured
-                Log.d(TAG, "BT not enabled");
-                Toast.makeText(this, R.string.bt_not_enabled_leaving, Toast.LENGTH_SHORT).show();
-                finish();
-            }
-            /*
-             * if this is the activity result from authorization flow, do a call
-             * back to authorizeCallback Source Tag: login_tag
-             */
-                case AUTHORIZE_ACTIVITY_RESULT_CODE: {
-                    Utility.mFacebook.authorizeCallback(requestCode, resultCode, data);
-                    break;
-                }
-                /*
-                 * if this is the result for a photo picker from the gallery, upload
-                 * the image after scaling it. You can use the Utility.scaleImage()
-                 * function for scaling
-                 */
-                case PICK_EXISTING_PHOTO_RESULT_CODE: {
-                    if (resultCode == Activity.RESULT_OK) {
-                        Uri photoUri = data.getData();
-                        if (photoUri != null) {
-                            Bundle params = new Bundle();
-                            try {
-                                params.putByteArray("photo",
-                                        Utility.scaleImage(getApplicationContext(), photoUri));
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            params.putString("caption", "NonstopSoC");
-                            Utility.mAsyncRunner.request("me/photos", params, "POST",
-                                    new PhotoUploadListener(), null);
-                        } else {
-                            Toast.makeText(getApplicationContext(),
-                                    "Error selecting image from the gallery.", Toast.LENGTH_SHORT)
-                                    .show();
-                        }
-                    } else {
-                        Toast.makeText(getApplicationContext(), "No image selected for upload.",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                    break;
-                
-               
-                }
-        }
-    }
-    
-    /*
-     * callback for the photo upload
-     */
-    public class PhotoUploadListener extends BaseRequestListener {
+	/*
+	 * The Callback for notifying the application when authorization succeeds or
+	 * fails.
+	 */
 
-        @Override
-        public void onComplete(final String response, final Object state) {
-            dialog.dismiss();
-            mHandler_facebook.post(new Runnable() {
-                @Override
-                public void run() {
-                    new UploadPhotoResultDialog(BluetoothChat.this, "Upload Photo executed", response)
-                            .show();
-                }
-            });
-        }
+	public class FbAPIsAuthListener implements AuthListener {
 
-        public void onFacebookError(FacebookError error) {
-            dialog.dismiss();
-            Toast.makeText(getApplicationContext(), "Facebook Error: " + error.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
-    }
+		@Override
+		public void onAuthSucceed() {
+			requestUserData();
+		}
 
+		@Override
+		public void onAuthFail(String error) {
+			mText.setText("Login Failed: " + error);
+		}
+	}
 
-    /*
-     * Callback for fetching current user's name, picture, uid.
-     */
-    public class UserRequestListener extends BaseRequestListener {
+	/*
+	 * The Callback for notifying the application when log out starts and
+	 * finishes.
+	 */
+	public class FbAPIsLogoutListener implements LogoutListener {
+		@Override
+		public void onLogoutBegin() {
+			mText.setText("Logging out...");
+		}
 
-        @Override
-        public void onComplete(final String response, final Object state) {
-            JSONObject jsonObject;
-            try {
-                jsonObject = new JSONObject(response);
+		@Override
+		public void onLogoutFinish() {
+			mText.setText("You have logged out! ");
+			mUserPic.setImageBitmap(null);
+		}
+	}
 
-                final String picURL = jsonObject.getJSONObject("picture")
-                        .getJSONObject("data").getString("url");
-                final String name = jsonObject.getString("name");
-                Utility.userUID = jsonObject.getString("id");
+	/*
+	 * Request user name, and picture to show on the main screen.
+	 */
+	public void requestUserData() {
+		mText.setText("Fetching user name, profile pic...");
+		Bundle params = new Bundle();
+		params.putString("fields", "name, picture");
+		Utility.mAsyncRunner.request("me", params, new UserRequestListener());
+	}
 
-                mHandler_facebook.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mText.setText("Welcome " + name + "!");
-                        mUserPic.setImageBitmap(Utility.getBitmap(picURL));
-                    }
-                });
+	class ViewHolder {
+		TextView main_list_item;
+	}
 
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
+	private void connectDevice(Intent data, boolean secure) {
+		// Get the device MAC address
+		String address = data.getExtras().getString(
+				DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+		// Get the BLuetoothDevice object
+		BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+		// Attempt to connect to the device
+		mChatService.connect(device, secure);
+	}
 
-    }
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.option_menu, menu);
+		return true;
+	}
 
-    /*
-     * The Callback for notifying the application when authorization succeeds or
-     * fails.
-     */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent serverIntent = null;
+		if (item.getItemId() == R.id.secure_connect_scan) {
 
-    public class FbAPIsAuthListener implements AuthListener {
+			// Launch the DeviceListActivity to see devices and do scan
+			serverIntent = new Intent(this, DeviceListActivity.class);
+			startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
+			return true;
 
-        @Override
-        public void onAuthSucceed() {
-            requestUserData();
-        }
-
-        @Override
-        public void onAuthFail(String error) {
-            mText.setText("Login Failed: " + error);
-        }
-    }
-
-    /*
-     * The Callback for notifying the application when log out starts and
-     * finishes.
-     */
-    public class FbAPIsLogoutListener implements LogoutListener {
-        @Override
-        public void onLogoutBegin() {
-            mText.setText("Logging out...");
-        }
-
-        @Override
-        public void onLogoutFinish() {
-            mText.setText("You have logged out! ");
-            mUserPic.setImageBitmap(null);
-        }
-    }
-
-    /*
-     * Request user name, and picture to show on the main screen.
-     */
-    public void requestUserData() {
-        mText.setText("Fetching user name, profile pic...");
-        Bundle params = new Bundle();
-        params.putString("fields", "name, picture");
-        Utility.mAsyncRunner.request("me", params, new UserRequestListener());
-    }
-
-    
-    class ViewHolder {
-        TextView main_list_item;
-    }
-
-    private void connectDevice(Intent data, boolean secure) {
-        // Get the device MAC address
-        String address = data.getExtras()
-            .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-        // Get the BLuetoothDevice object
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        // Attempt to connect to the device
-        mChatService.connect(device, secure);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.option_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        Intent serverIntent = null;
-        if (item.getItemId()==R.id.secure_connect_scan) {
-        
-            // Launch the DeviceListActivity to see devices and do scan
-            serverIntent = new Intent(this, DeviceListActivity.class);
-            startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
-            return true;
-      
-        }else if( item.getItemId()==R.id.discoverable){
-            // Ensure this device is discoverable by others
-            ensureDiscoverable();
-            return true;
-        }
-        return false;
-    }
+		} else if (item.getItemId() == R.id.discoverable) {
+			// Ensure this device is discoverable by others
+			ensureDiscoverable();
+			return true;
+		}
+		return false;
+	}
 
 }

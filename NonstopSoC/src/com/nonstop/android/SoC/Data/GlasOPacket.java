@@ -1,43 +1,47 @@
 package com.nonstop.android.SoC.Data;
 
+
+import com.nonstop.android.SoC.Util;
+
 public class GlasOPacket {
-	char start_=0xff;
-	char mode_=0x00;
 	char[] data_={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-	char end_=0xff;
+
+	char start_=(char)0xff;
+	char end_=(char)0xff;
+
 	
 	GlasOPacket(){
-		start_ = 0xff;
-		mode_=0x00;
-		end_ = 0xff;
+		start_ = (char)0xff;
+		end_ = (char)0xff;
 	}
 	
-	String makePacket(){
-		return ("" + start_+mode_+data_[0]+data_[1]+data_[2]+data_[3]+data_[4]+data_[5]+data_[6]+end_);	
+	String makePacket(){ 
+		String temp = "" + (start_)+(data_[0])+(data_[1])+(data_[2])+(data_[3])+(data_[4])+(data_[5])+(data_[6])+(data_[7])+(end_);	
+		return temp;
 	}
-	void setMode(char m){
-		mode_ = m;
+	void setData1(int i){
+		data_[0] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData1(char m){
-		data_[0] = m;
+	void setData2(int i){
+		data_[1] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData2(char m){
-		data_[1] = m;
+	void setData3(int i){
+		data_[2] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData3(char m){
-		data_[2] = m;
+	void setData4(int i){
+		data_[3] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData4(char m){
-		data_[3] = m;
+	void setData5(int i){
+		data_[4] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData5(char m){
-		data_[4] = m;
+	void setData6(int i){
+		data_[5] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData6(char m){
-		data_[5] = m;
+	void setData7(int i){
+		data_[6] = (char)i;//(char)(i & 0xFF);
 	}
-	void setData7(char m){
-		data_[6] = m;
+	void setData8(int i){
+		data_[7] = (char)i;//(char)(i & 0xFF);
 	}
 	
 }
