@@ -28,6 +28,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -96,6 +97,9 @@ public class BluetoothChat extends Activity {
 	private ImageView mUserPic;
 	private Handler mHandler_facebook;
 	ProgressDialog dialog;
+	
+	private char[] photo_data_= new char[100*100];
+	private Bitmap photo_converted;
 
 	final static int AUTHORIZE_ACTIVITY_RESULT_CODE = 9;
 	final static int PICK_EXISTING_PHOTO_RESULT_CODE = 8;
@@ -399,9 +403,11 @@ public class BluetoothChat extends Activity {
 					@Override
 					public void onCheckedChanged(CompoundButton buttonView,
 							boolean isChecked) {
+						if(isChecked){
 						mChatService.mGlasOData.setStatus(Status.WRONG);
-						mChatService.mGlasOData.setExceed(Exceed.NORMALSPEED);
-
+						}else{
+						mChatService.mGlasOData.setStatus(Status.NORMAL);
+						}
 					}
 				});
 
@@ -442,7 +448,7 @@ public class BluetoothChat extends Activity {
 							mChatService.heartbeat_stat_ = 0;
 						}
 						if (mChatService.heartbeat_stat_ == 0
-								&& mChatService.cadence_stat_ == 0
+								&& mChatService.distance_stat_ == 0
 								&& mChatService.speed_stat_ == 0) {
 							mChatService.sens_stat_ = 0;
 						} else {
@@ -461,13 +467,11 @@ public class BluetoothChat extends Activity {
 
 					@Override
 					public void onStartTrackingTouch(SeekBar seekBar) {
-						// TODO Auto-generated method stub
 
 					}
 
 					@Override
 					public void onStopTrackingTouch(SeekBar seekBar) {
-						// TODO Auto-generated method stub
 
 					}
 				});
@@ -489,7 +493,7 @@ public class BluetoothChat extends Activity {
 							mChatService.speed_stat_ = 0;
 						}
 						if (mChatService.heartbeat_stat_ == 0
-								&& mChatService.cadence_stat_ == 0
+								&& mChatService.distance_stat_ == 0
 								&& mChatService.speed_stat_ == 0) {
 							mChatService.sens_stat_ = 0;
 						} else {
@@ -507,13 +511,11 @@ public class BluetoothChat extends Activity {
 
 			@Override
 			public void onStartTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
 
 			}
 
 			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
 
 			}
 		});
@@ -527,15 +529,15 @@ public class BluetoothChat extends Activity {
 							boolean isChecked) {
 						if (isChecked) {
 							if (D)
-								Log.e(TAG, "++ Cadence ON ++");
-							mChatService.cadence_stat_ = 1;
+								Log.e(TAG, "++ Distance ON ++");
+							mChatService.distance_stat_ = 1;
 						} else {
 							if (D)
-								Log.e(TAG, "++ HEARTBEAT OFF ++");
-							mChatService.cadence_stat_ = 0;
+								Log.e(TAG, "++ Distance OFF ++");
+							mChatService.distance_stat_ = 0;
 						}
 						if (mChatService.heartbeat_stat_ == 0
-								&& mChatService.cadence_stat_ == 0
+								&& mChatService.distance_stat_ == 0
 								&& mChatService.speed_stat_ == 0) {
 							mChatService.sens_stat_ = 0;
 						} else {
@@ -554,13 +556,11 @@ public class BluetoothChat extends Activity {
 
 					@Override
 					public void onStartTrackingTouch(SeekBar seekBar) {
-						// TODO Auto-generated method stub
 
 					}
 
 					@Override
 					public void onStopTrackingTouch(SeekBar seekBar) {
-						// TODO Auto-generated method stub
 
 					}
 				});
@@ -678,14 +678,16 @@ public class BluetoothChat extends Activity {
 				// construct a string from the buffer
 				String writeMessage = new String(writeBuf);
 				mConversationArrayAdapter.add("Me:  "
-						+ Util.stringToHex0x(writeMessage));
+						+ Util.encodeStringToHex(writeMessage));
 				break;
 			case MESSAGE_READ:
 				byte[] readBuf = (byte[]) msg.obj;
 				// construct a string from the valid bytes in the buffer
 				String readMessage = new String(readBuf, 0, msg.arg1);
 				mConversationArrayAdapter.add(mConnectedDeviceName + ":  "
-						+ Util.stringToHex0x(readMessage));
+						+ Util.encodeStringToHex(readMessage));
+				
+				//TODO: 데이터 받았을
 				break;
 			case MESSAGE_DEVICE_NAME:
 				// save the connected device's name

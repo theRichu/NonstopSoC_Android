@@ -23,6 +23,25 @@ public class Util {
 
 	    return result;
 	  }
+	  
+	  public static String encodeStringToHex(String sourceText) {
+			byte[] rawData = sourceText.getBytes();
+			StringBuffer hexText = new StringBuffer();
+			String initialHex = null;
+			int initHexLength = 0;
+
+			for (int i = 0; i < rawData.length; i++) {
+				int positiveValue = rawData[i] & 0x000000FF;
+				initialHex = Integer.toHexString(positiveValue);
+				initHexLength = initialHex.length();
+				while (initHexLength++ < 2) {
+					hexText.append("0");
+				}
+				hexText.append(initialHex);
+			}
+			return hexText.toString();
+		}
+
 	  public static byte[] int2byte( int i ) 
 	  {
 	             byte[] dest = new byte[4];

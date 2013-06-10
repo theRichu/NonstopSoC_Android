@@ -68,7 +68,7 @@ public class BluetoothChatService {
 	public int sens_stat_ = 0;
 	public int heartbeat_stat_ = 0;
 	public int speed_stat_ = 0;
-	public int cadence_stat_ = 0;
+	public int distance_stat_= 0;
 
 	public GlasOData mGlasOData;
 
@@ -425,8 +425,8 @@ public class BluetoothChatService {
 			while (true) {
 				try {
 					if (navi_stat_ != 0) {
-						Thread.sleep(500);
-						Log.e(TAG, "Packet");
+						Thread.sleep(2000);
+						//Log.e(TAG, "Packet");
 						write(mGlasOData.makePacket().getBytes("ISO-8859-1"));
 					}
 
