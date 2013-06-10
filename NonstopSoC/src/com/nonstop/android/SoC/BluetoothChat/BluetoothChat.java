@@ -21,19 +21,20 @@ import java.io.IOException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
+
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.DialogInterface;
+
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.provider.MediaStore;
+
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -71,14 +72,14 @@ import com.nonstop.android.SoC.Data.GlasOData.OnTime;
 import com.nonstop.android.SoC.Data.GlasOData.Status;
 import com.nonstop.android.SoC.Facebook.BaseRequestListener;
 
-import com.nonstop.android.SoC.Facebook.Hackbook;
+
 import com.nonstop.android.SoC.Facebook.LoginButton;
 import com.nonstop.android.SoC.Facebook.SessionEvents;
 import com.nonstop.android.SoC.Facebook.SessionStore;
 import com.nonstop.android.SoC.Facebook.UploadPhotoResultDialog;
 import com.nonstop.android.SoC.Facebook.Utility;
 
-import com.nonstop.android.SoC.Facebook.Hackbook.PhotoUploadListener;
+
 import com.nonstop.android.SoC.Facebook.SessionEvents.AuthListener;
 import com.nonstop.android.SoC.Facebook.SessionEvents.LogoutListener;
 
@@ -98,8 +99,9 @@ public class BluetoothChat extends Activity {
 	private Handler mHandler_facebook;
 	ProgressDialog dialog;
 	
-	private char[] photo_data_= new char[100*100];
-	private Bitmap photo_converted;
+	//TODO:사진 입력시
+	//private char[] photo_data_= new char[100*100];
+	//private Bitmap photo_converted;
 
 	final static int AUTHORIZE_ACTIVITY_RESULT_CODE = 9;
 	final static int PICK_EXISTING_PHOTO_RESULT_CODE = 8;
@@ -651,6 +653,7 @@ public class BluetoothChat extends Activity {
 	};
 
 	// The Handler that gets information back from the BluetoothChatService
+	@SuppressLint("HandlerLeak")
 	private final Handler mHandler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
